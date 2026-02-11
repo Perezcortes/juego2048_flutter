@@ -17,6 +17,11 @@ class _GameScreenState extends State<GameScreen> {
   int moves = 0;
   final int maxMoves = 50;
 
+  // Para guardar cuántos ganamos en el último turno
+  int lastTurnBonus = 0;
+  // Usada internamente mientras calculamos filas
+  int _tempBonusInTurn = 0;
+
   bool isGameOver = false;
   bool isWon = false;
 
@@ -31,6 +36,7 @@ class _GameScreenState extends State<GameScreen> {
       grid = List.generate(16, (index) => 0);
       score = 0;
       moves = 0;
+      lastTurnBonus = 0;
       isGameOver = false;
       isWon = false;
       addRandomTile();
@@ -53,9 +59,25 @@ class _GameScreenState extends State<GameScreen> {
     List<int> newRow = row.where((e) => e != 0).toList();
     for (int i = 0; i < newRow.length - 1; i++) {
       if (newRow[i] == newRow[i + 1]) {
-        newRow[i] *= 2;
-        score += newRow[i];
-        if (newRow[i] == 2048) isWon = true;
+        int mergedValue = newRow[i] * 2;
+        newRow[i] = mergedValue;
+        score += mergedValue;
+
+        // --- LOGICA DE RECOMPENSA ---
+        // Si fusionas y creas un 8 o 16: +1 movimiento
+        if (mergedValue >= 8 && mergedValue <= 16) {
+          _tempBonusInTurn += 1;
+        }
+        // Si creas un 32 o 64: +2 movimientos
+        else if (mergedValue >= 32 && mergedValue <= 64) {
+          _tempBonusInTurn += 2;
+        }
+        // Si creas de 128 para arriba: +3 movimientos
+        else if (mergedValue >= 128) {
+          _tempBonusInTurn += 3;
+        }
+
+        if (mergedValue == 2048) isWon = true;
         newRow.removeAt(i + 1);
       }
     }
@@ -65,17 +87,17 @@ class _GameScreenState extends State<GameScreen> {
     return newRow;
   }
 
-  // 'VoidCallback'
   void move(VoidCallback moveLogic) {
     if (isGameOver || isWon) return;
 
-    // Guardar estado anterior
     List<int> oldGrid = List.from(grid);
 
-    // Ejecutar lógica
+    // Reiniciamos el contador temporal de bonus antes de calcular
+    _tempBonusInTurn = 0;
+
+    // Ejecutamos la lógica (esto llamará a mergeRow varias veces)
     moveLogic();
 
-    // Verificar cambios
     bool hasChanged = false;
     for (int i = 0; i < grid.length; i++) {
       if (grid[i] != oldGrid[i]) hasChanged = true;
@@ -83,7 +105,19 @@ class _GameScreenState extends State<GameScreen> {
 
     if (hasChanged) {
       setState(() {
+        // 1. Aumentamos el costo del movimiento
         moves++;
+
+        // 2. Aplicamos el descuento/bonus ganado
+        // Si ganamos 2 movimientos, restamos 2 al contador de "usados"
+        moves -= _tempBonusInTurn;
+
+        // Evitamos números negativos (ej: tenía 0 movimientos y gané 2 -> se queda en 0)
+        if (moves < 0) moves = 0;
+
+        // 3. Guardamos el bonus para que la UI lo muestre
+        lastTurnBonus = _tempBonusInTurn;
+
         addRandomTile();
 
         if (moves >= maxMoves && !isWon) {
@@ -138,7 +172,6 @@ class _GameScreenState extends State<GameScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8EF),
       body: GestureDetector(
-        // --- CORRECCIÓN DE LLAVES EN LOS IF ---
         onVerticalDragEnd: (details) {
           if (details.primaryVelocity! < 0) {
             move(() => _moveUpLogic());
@@ -173,10 +206,12 @@ class _GameScreenState extends State<GameScreen> {
                             ),
                           ),
                           const SizedBox(height: 20),
+                          // Pasamos el lastTurnBonus aquí
                           ScoreWidget(
                             score: score,
                             moves: moves,
                             maxMoves: maxMoves,
+                            bonusMoves: lastTurnBonus, // <--- AQUÍ
                             onReset: startGame,
                           ),
                           const SizedBox(height: 20),
@@ -204,6 +239,7 @@ class _GameScreenState extends State<GameScreen> {
                                   score: score,
                                   moves: moves,
                                   maxMoves: maxMoves,
+                                  bonusMoves: lastTurnBonus,
                                   onReset: startGame,
                                 ),
                               ],
@@ -235,6 +271,7 @@ class _GameScreenState extends State<GameScreen> {
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 20),
                         ElevatedButton(
@@ -253,7 +290,6 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   // --- LÓGICA PURA DE MATRICES ---
-  // --- CORRECCIÓN DE LLAVES EN LOS FOR ---
 
   void _moveLeftLogic() {
     for (int i = 0; i < 16; i += 4) {

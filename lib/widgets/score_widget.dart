@@ -4,6 +4,7 @@ class ScoreWidget extends StatelessWidget {
   final int score;
   final int moves;
   final int maxMoves;
+  final int bonusMoves; // Para saber cuánto ganamos este turno
   final VoidCallback onReset;
 
   const ScoreWidget({
@@ -11,6 +12,7 @@ class ScoreWidget extends StatelessWidget {
     required this.score,
     required this.moves,
     required this.maxMoves,
+    required this.bonusMoves, // Recibimos el bonus
     required this.onReset,
   });
 
@@ -25,17 +27,13 @@ class ScoreWidget extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Fila de Puntaje y Movimientos
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildStatBox("SCORE", "$score"),
               const SizedBox(width: 15),
-              _buildStatBox(
-                "MOVES",
-                "$moves / $maxMoves",
-                isWarning: moves >= maxMoves - 5,
-              ), // Alerta visual si quedan pocos
+              // Caja de movimientos con animación
+              _buildMovesBox(),
             ],
           ),
           const SizedBox(height: 10),
@@ -54,7 +52,67 @@ class ScoreWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildStatBox(String label, String value, {bool isWarning = false}) {
+  Widget _buildMovesBox() {
+    // Calculamos movimientos restantes
+    int remaining = maxMoves - moves;
+
+    return Column(
+      children: [
+        const Text(
+          "MOVES",
+          style: TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              "$moves / $maxMoves",
+              style: TextStyle(
+                // Si te quedan menos de 10, se pone rojo
+                color: remaining < 10 ? Colors.redAccent : Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            // ANIMACIÓN DE BONUS: Si hay bonus, mostramos el +X en verde
+            if (bonusMoves > 0)
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 2),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.0, end: 1.0),
+                  duration: const Duration(milliseconds: 500),
+                  builder: (context, value, child) {
+                    return Opacity(
+                      opacity: value,
+                      child: Transform.translate(
+                        offset: Offset(
+                          0,
+                          -10 * value,
+                        ), // El texto flota hacia arriba
+                        child: Text(
+                          "+$bonusMoves",
+                          style: const TextStyle(
+                            color: Colors.greenAccent,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatBox(String label, String value) {
     return Column(
       children: [
         Text(
@@ -67,8 +125,8 @@ class ScoreWidget extends StatelessWidget {
         ),
         Text(
           value,
-          style: TextStyle(
-            color: isWarning ? Colors.redAccent : Colors.white,
+          style: const TextStyle(
+            color: Colors.white,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
