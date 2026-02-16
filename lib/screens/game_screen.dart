@@ -56,7 +56,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   List<int> mergeRow(List<int> row) {
+    //Quitar ceros
     List<int> newRow = row.where((e) => e != 0).toList();
+    //Fusionar adyacentes iguales
     for (int i = 0; i < newRow.length - 1; i++) {
       if (newRow[i] == newRow[i + 1]) {
         int mergedValue = newRow[i] * 2;
@@ -87,6 +89,7 @@ class _GameScreenState extends State<GameScreen> {
     return newRow;
   }
 
+  //Guardar copia del tablero actual
   void move(VoidCallback moveLogic) {
     if (isGameOver || isWon) return;
 
@@ -98,11 +101,13 @@ class _GameScreenState extends State<GameScreen> {
     // Ejecutamos la lógica (esto llamará a mergeRow varias veces)
     moveLogic();
 
+    //Verificar si algo cambió
     bool hasChanged = false;
     for (int i = 0; i < grid.length; i++) {
       if (grid[i] != oldGrid[i]) hasChanged = true;
     }
 
+    //Si cambió, actualizamos la UI y generamos nueva ficha
     if (hasChanged) {
       setState(() {
         // 1. Aumentamos el costo del movimiento
