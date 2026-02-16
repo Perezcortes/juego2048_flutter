@@ -297,18 +297,18 @@ class _GameScreenState extends State<GameScreen> {
   // --- LÓGICA PURA DE MATRICES ---
 
   void _moveLeftLogic() {
-    for (int i = 0; i < 16; i += 4) {
-      List<int> row = grid.sublist(i, i + 4);
-      List<int> newRow = mergeRow(row);
+    for (int i = 0; i < 16; i += 4) { //Recorremos de 4 en 4
+      List<int> row = grid.sublist(i, i + 4); //Cortamos la fila en 4
+      List<int> newRow = mergeRow(row); //Fusionamos
       for (int j = 0; j < 4; j++) {
-        grid[i + j] = newRow[j];
+        grid[i + j] = newRow[j]; //Guardamos
       }
     }
   }
 
   void _moveRightLogic() {
     for (int i = 0; i < 16; i += 4) {
-      List<int> row = grid.sublist(i, i + 4).reversed.toList();
+      List<int> row = grid.sublist(i, i + 4).reversed.toList(); //mergeRow suma hacia la izquierda (el inicio del arreglo). Para mover a la derecha sin crear un algoritmo nuevo
       List<int> newRow = mergeRow(row);
       newRow = newRow.reversed.toList();
       for (int j = 0; j < 4; j++) {
@@ -318,14 +318,16 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void _moveUpLogic() {
+    //Construimos una lista MANUALMENTE saltando de 4 en 4
     for (int col = 0; col < 4; col++) {
       List<int> column = [
-        grid[col],
-        grid[col + 4],
-        grid[col + 8],
-        grid[col + 12],
+        grid[col], // Índice 0 (Fila 1)
+        grid[col + 4], // Índice 4 (Fila 2)
+        grid[col + 8], // Índice 8 (Fila 3)
+        grid[col + 12], // Índice 12 (Fila 4)
       ];
-      List<int> newCol = mergeRow(column);
+      List<int> newCol = mergeRow(column); // Fusionamos
+      //Devolvemos los datos a sus posiciones verticales originales
       for (int row = 0; row < 4; row++) {
         grid[col + (row * 4)] = newCol[row];
       }
